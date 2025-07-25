@@ -41,14 +41,15 @@ PageOS 是一个基于 Arch Linux 的图形化发行版，采用 Wayland 下的 
 ### 在线仓库
 
 ```
-./applications/
-├── %APP_NAME%/
-│   ├── %VERSION%/
-│   │   ├── metadata.json
-│   │   └── ...           # 应用文件
-│   └── versions.txt
-├── config.toml           # 设置文件
-└── index.json            # 索引文件
+./
+├── applications/
+│   └── %APP_NAME%/
+│       ├── %VERSION%/
+│       │   ├── metadata.json
+│       │   └── ...         # 应用文件
+│       └── versions.txt
+├── config.toml             # 设置文件
+└── index.json              # 索引文件
 ```
 
 ## 安装

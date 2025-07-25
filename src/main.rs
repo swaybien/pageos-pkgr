@@ -207,7 +207,7 @@ async fn run() -> Result<()> {
                 }
                 let content = fs::read_to_string(&index_path)?;
                 let global_index: GlobalIndex = serde_json::from_str(&content)?;
-            
+
                 let local_index = global_index.local;
                 let remote_index = global_index.remote;
 
@@ -310,7 +310,11 @@ async fn run() -> Result<()> {
 
                 // 更新每个升级包的版本信息
                 for update in &updates {
-                    if let Some(app) = global_index.local.iter_mut().find(|app| app.id == update.id) {
+                    if let Some(app) = global_index
+                        .local
+                        .iter_mut()
+                        .find(|app| app.id == update.id)
+                    {
                         app.latest_version = update.latest_version.clone();
                     }
                 }
@@ -404,7 +408,7 @@ async fn run() -> Result<()> {
                         remote: Vec::new(),
                     }
                 };
-            
+
                 // 检查该包是否已在本地索引中，如果不在则添加
                 if !global_index.local.iter().any(|app| app.id == package.id) {
                     global_index.local.push(AppIndex {
@@ -653,11 +657,11 @@ fn create_source_repo(path: &str) -> Result<()> {
 
     // 创建 config.toml 文件
     let config_path = repo_path.join("config.toml");
-    fs::write(&config_path, "# 软件源配置\n").context("写入 config.toml 失败")?;
+    fs::write(&config_path, "# 软件源配置\n\n[remote]\nurl = \"https://raw.githubusercontent.com/swaybien/pageos-apps/refs/heads/master\"").context("写入 config.toml 失败")?;
 
     // 创建 index.json 文件
     let index_path = repo_path.join("index.json");
-    fs::write(&index_path, "[]").context("写入 index.json 失败")?;
+    fs::write(&index_path, "{\"local\":[],\"remote\":[]}").context("写入 index.json 失败")?;
 
     Ok(())
 }
@@ -740,7 +744,11 @@ fn add_package_to_repo(package_path: &str) -> Result<()> {
     };
 
     // 更新或添加索引条目到 remote 数组
-    if let Some(existing) = global_index.remote.iter_mut().find(|app| app.id == metadata.id) {
+    if let Some(existing) = global_index
+        .remote
+        .iter_mut()
+        .find(|app| app.id == metadata.id)
+    {
         existing.latest_version = metadata.version.clone();
         existing.name = metadata.name.clone();
         existing.author = metadata.author.clone();
@@ -836,11 +844,17 @@ fn remove_package_from_repo(package_spec: &str) -> Result<()> {
         let mut global_index: GlobalIndex = serde_json::from_str(&index_content)?;
 
         // 更新 remote 数组：移除已删除的包（如果包目录不存在）或更新最新版本
-        global_index.remote.retain(|app| app.id != package_name || package_dir.exists());
+        global_index
+            .remote
+            .retain(|app| app.id != package_name || package_dir.exists());
 
         // 如果包还存在，更新 remote 数组中该包的最新版本
         if package_dir.exists() {
-            if let Some(app) = global_index.remote.iter_mut().find(|app| app.id == package_name) {
+            if let Some(app) = global_index
+                .remote
+                .iter_mut()
+                .find(|app| app.id == package_name)
+            {
                 let versions_content = fs::read_to_string(&package_dir.join("versions.txt"))?;
                 let versions: Vec<&str> = versions_content.lines().collect();
                 if let Some(latest) = versions.last() {
@@ -1094,7 +1108,7 @@ fn update_source_index() -> Result<()> {
         if !versions_file.exists() {
             eprintln!("警告: 应用 '{}' 没有 versions.txt 文件，跳过", app_id);
             continue;
-    }
+        }
 
         let versions_content = fs::read_to_string(&versions_file)?;
         let versions: Vec<&str> = versions_content.lines().collect();
