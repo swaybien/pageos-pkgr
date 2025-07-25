@@ -410,6 +410,7 @@ async fn run() -> Result<()> {
                     global_index.local.push(AppIndex {
                         id: package.id.clone(),
                         name: package.name.clone(),
+                        icon: metadata.icon.clone(),
                         author: package.author.clone(),
                         latest_version: package.latest_version.clone(),
                         description: package.description.clone(),
@@ -542,6 +543,7 @@ fn initialize_package(base_path: &Path) -> Result<()> {
         "id": "",
         "version": "0.1.0",
         "description": "",
+        "icon": "",
         "author": "",
         "type": "",
         "category": "",
@@ -665,6 +667,7 @@ struct Metadata {
     id: String,
     version: String,
     name: String,
+    icon: String,
     author: String,
     description: Option<String>,
     #[serde(rename = "type")]
@@ -679,6 +682,7 @@ struct Metadata {
 struct AppIndex {
     id: String,
     name: String,
+    icon: String,
     author: String,
     latest_version: String,
     description: Option<String>,
@@ -745,6 +749,7 @@ fn add_package_to_repo(package_path: &str) -> Result<()> {
         global_index.remote.push(AppIndex {
             id: metadata.id.clone(),
             name: metadata.name.clone(),
+            icon: metadata.icon.clone(),
             author: metadata.author.clone(),
             latest_version: metadata.version.clone(),
             description: metadata.description.clone(),
@@ -1122,6 +1127,7 @@ fn update_source_index() -> Result<()> {
         remote_index.push(AppIndex {
             id: app_id.clone(),
             name: metadata.name,
+            icon: metadata.icon,
             author: metadata.author,
             latest_version: latest_version.clone(),
             description: metadata.description,
