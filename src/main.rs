@@ -199,17 +199,17 @@ async fn run() -> Result<()> {
                 // 先更新本地索引
                 update_local_index().await?;
 
-                // 获取本地和远程索引
-                let local_index = get_local_index()?;
-                let remote_index = {
-                    let repo_root = std::env::current_dir()?;
-                    let remote_index_path = repo_root.join("remote").join("index.json");
-                    if !remote_index_path.exists() {
-                        anyhow::bail!("远程索引不存在，请先运行 local update");
-                    }
-                    let content = fs::read_to_string(&remote_index_path)?;
-                    serde_json::from_str::<Vec<AppIndex>>(&content)?
-                };
+                // 获取本地索引（GlobalIndex）的 local 和 remote 部分
+                let repo_root = std::env::current_dir()?;
+                let index_path = repo_root.join("index.json");
+                if !index_path.exists() {
+                    anyhow::bail!("索引文件不存在，请先运行 local update");
+                }
+                let content = fs::read_to_string(&index_path)?;
+                let global_index: GlobalIndex = serde_json::from_str(&content)?;
+            
+                let local_index = global_index.local;
+                let remote_index = global_index.remote;
 
                 // 找出需要更新的包
                 let updates = compare_versions(&local_index, &remote_index);
@@ -247,7 +247,7 @@ async fn run() -> Result<()> {
                     .ok_or_else(|| anyhow::anyhow!("配置文件中缺少远程仓库 URL"))?;
 
                 // 执行升级
-                for update in updates {
+                for update in &updates {
                     println!("正在升级 {}...", update.id);
 
                     // 下载新版本
@@ -297,11 +297,26 @@ async fn run() -> Result<()> {
                 }
 
                 // 更新本地索引
-                let local_index_path = repo_root.join("local").join("index.json");
-                fs::write(
-                    &local_index_path,
-                    serde_json::to_string_pretty(&remote_index)?,
-                )?;
+                let index_path = repo_root.join("index.json");
+                let mut global_index: GlobalIndex = if index_path.exists() {
+                    let content = fs::read_to_string(&index_path)?;
+                    serde_json::from_str(&content)?
+                } else {
+                    GlobalIndex {
+                        local: Vec::new(),
+                        remote: Vec::new(),
+                    }
+                };
+
+                // 更新每个升级包的版本信息
+                for update in &updates {
+                    if let Some(app) = global_index.local.iter_mut().find(|app| app.id == update.id) {
+                        app.latest_version = update.latest_version.clone();
+                    }
+                }
+
+                // 写入更新后的索引
+                fs::write(&index_path, serde_json::to_string_pretty(&global_index)?)?;
 
                 println!("所有软件包升级完成");
                 Ok(())
@@ -378,11 +393,21 @@ async fn run() -> Result<()> {
                     write_versions_to_file(&versions_file, &versions)?;
                 }
 
-                // 更新本地索引
-                let local_index_path = repo_root.join("local").join("index.json");
-                let mut local_index = get_local_index()?;
-                if !local_index.iter().any(|app| app.id == package.id) {
-                    local_index.push(AppIndex {
+                // 更新本地索引（local部分）
+                let local_index_path = repo_root.join("index.json");
+                let mut global_index: GlobalIndex = if local_index_path.exists() {
+                    let content = fs::read_to_string(&local_index_path)?;
+                    serde_json::from_str(&content)?
+                } else {
+                    GlobalIndex {
+                        local: Vec::new(),
+                        remote: Vec::new(),
+                    }
+                };
+            
+                // 检查该包是否已在本地索引中，如果不在则添加
+                if !global_index.local.iter().any(|app| app.id == package.id) {
+                    global_index.local.push(AppIndex {
                         id: package.id.clone(),
                         name: package.name.clone(),
                         author: package.author.clone(),
@@ -392,7 +417,7 @@ async fn run() -> Result<()> {
                     });
                     fs::write(
                         &local_index_path,
-                        serde_json::to_string_pretty(&local_index)?,
+                        serde_json::to_string_pretty(&global_index)?,
                     )?;
                 }
 
@@ -660,6 +685,12 @@ struct AppIndex {
     location: String,
 }
 
+#[derive(Serialize, Deserialize)]
+struct GlobalIndex {
+    local: Vec<AppIndex>,
+    remote: Vec<AppIndex>,
+}
+
 fn add_package_to_repo(package_path: &str) -> Result<()> {
     let package_path = Path::new(package_path);
     let metadata_path = package_path.join("metadata.json");
@@ -694,21 +725,24 @@ fn add_package_to_repo(package_path: &str) -> Result<()> {
 
     // 更新索引文件
     let index_file = repo_root.join("index.json");
-    let mut index: Vec<AppIndex> = if index_file.exists() {
+    let mut global_index: GlobalIndex = if index_file.exists() {
         let content = fs::read_to_string(&index_file)?;
         serde_json::from_str(&content)?
     } else {
-        Vec::new()
+        GlobalIndex {
+            local: Vec::new(),
+            remote: Vec::new(),
+        }
     };
 
-    // 更新或添加索引条目
-    if let Some(existing) = index.iter_mut().find(|app| app.id == metadata.id) {
+    // 更新或添加索引条目到 remote 数组
+    if let Some(existing) = global_index.remote.iter_mut().find(|app| app.id == metadata.id) {
         existing.latest_version = metadata.version.clone();
         existing.name = metadata.name.clone();
         existing.author = metadata.author.clone();
         existing.description = metadata.description.clone();
     } else {
-        index.push(AppIndex {
+        global_index.remote.push(AppIndex {
             id: metadata.id.clone(),
             name: metadata.name.clone(),
             author: metadata.author.clone(),
@@ -719,7 +753,7 @@ fn add_package_to_repo(package_path: &str) -> Result<()> {
     }
 
     // 写入更新后的索引
-    fs::write(&index_file, serde_json::to_string_pretty(&index)?)
+    fs::write(&index_file, serde_json::to_string_pretty(&global_index)?)
         .with_context(|| format!("写入索引文件失败: {}", index_file.display()))?;
 
     Ok(())
@@ -794,14 +828,14 @@ fn remove_package_from_repo(package_spec: &str) -> Result<()> {
     let index_file = repo_root.join("index.json");
     if index_file.exists() {
         let index_content = fs::read_to_string(&index_file)?;
-        let mut index: Vec<AppIndex> = serde_json::from_str(&index_content)?;
+        let mut global_index: GlobalIndex = serde_json::from_str(&index_content)?;
 
-        // 移除已删除的包（如果包目录不存在）或更新最新版本
-        index.retain(|app| app.id != package_name || package_dir.exists());
+        // 更新 remote 数组：移除已删除的包（如果包目录不存在）或更新最新版本
+        global_index.remote.retain(|app| app.id != package_name || package_dir.exists());
 
-        // 如果包还存在，更新最新版本
+        // 如果包还存在，更新 remote 数组中该包的最新版本
         if package_dir.exists() {
-            if let Some(app) = index.iter_mut().find(|app| app.id == package_name) {
+            if let Some(app) = global_index.remote.iter_mut().find(|app| app.id == package_name) {
                 let versions_content = fs::read_to_string(&package_dir.join("versions.txt"))?;
                 let versions: Vec<&str> = versions_content.lines().collect();
                 if let Some(latest) = versions.last() {
@@ -811,7 +845,7 @@ fn remove_package_from_repo(package_spec: &str) -> Result<()> {
         }
 
         // 写入更新后的索引
-        fs::write(&index_file, serde_json::to_string_pretty(&index)?)?;
+        fs::write(&index_file, serde_json::to_string_pretty(&global_index)?)?;
     }
 
     Ok(())
@@ -1012,16 +1046,30 @@ fn update_source_index() -> Result<()> {
     let applications_dir = repo_root.join("applications");
     let index_file = repo_root.join("index.json");
 
-    // 如果 applications 目录不存在，则创建一个空的索引
+    // 如果 applications 目录不存在，则创建一个空的 GlobalIndex
     if !applications_dir.exists() {
-        let empty_index: Vec<AppIndex> = Vec::new();
+        let empty_index = GlobalIndex {
+            local: Vec::new(),
+            remote: Vec::new(),
+        };
         fs::write(&index_file, serde_json::to_string_pretty(&empty_index)?)?;
         return Ok(());
     }
 
-    let mut index = Vec::new();
+    // 读取现有的索引文件（如果存在），我们只更新 remote 部分，保留 local 部分
+    let mut global_index: GlobalIndex = if index_file.exists() {
+        let content = fs::read_to_string(&index_file)?;
+        serde_json::from_str(&content)?
+    } else {
+        GlobalIndex {
+            local: Vec::new(),
+            remote: Vec::new(),
+        }
+    };
 
-    // 遍历所有应用目录
+    let mut remote_index = Vec::new();
+
+    // 遍历所有应用目录，构建 remote 索引
     for app_dir_entry in fs::read_dir(applications_dir)? {
         let app_dir_entry = app_dir_entry?;
         let app_dir_path = app_dir_entry.path();
@@ -1041,7 +1089,7 @@ fn update_source_index() -> Result<()> {
         if !versions_file.exists() {
             eprintln!("警告: 应用 '{}' 没有 versions.txt 文件，跳过", app_id);
             continue;
-        }
+    }
 
         let versions_content = fs::read_to_string(&versions_file)?;
         let versions: Vec<&str> = versions_content.lines().collect();
@@ -1071,7 +1119,7 @@ fn update_source_index() -> Result<()> {
             .with_context(|| format!("解析元数据失败: {}", metadata_path.display()))?;
 
         // 构建索引项
-        index.push(AppIndex {
+        remote_index.push(AppIndex {
             id: app_id.clone(),
             name: metadata.name,
             author: metadata.author,
@@ -1081,8 +1129,11 @@ fn update_source_index() -> Result<()> {
         });
     }
 
+    // 更新 global_index 的 remote 部分
+    global_index.remote = remote_index;
+
     // 写入更新后的索引
-    fs::write(&index_file, serde_json::to_string_pretty(&index)?)?;
+    fs::write(&index_file, serde_json::to_string_pretty(&global_index)?)?;
 
     Ok(())
 }
@@ -1153,27 +1204,33 @@ async fn update_local_index() -> Result<()> {
         )
     })?;
 
-    // 获取本地索引
+    // 获取本地索引（GlobalIndex）
     let local_index_path = repo_root.join("index.json");
-    let local_index: Vec<AppIndex> = if local_index_path.exists() {
+    let mut global_index: GlobalIndex = if local_index_path.exists() {
         let content = fs::read_to_string(&local_index_path)?;
         serde_json::from_str(&content)?
     } else {
-        Vec::new()
+        GlobalIndex {
+            local: Vec::new(),
+            remote: Vec::new(),
+        }
     };
 
-    // 比较差异
-    let updates = compare_versions(&local_index, &remote_index);
+    // 比较差异：使用 global_index.remote 作为本地当前存储的远程索引
+    let updates = compare_versions(&global_index.remote, &remote_index);
 
     if updates.is_empty() {
         println!("本地索引已是最新");
         return Ok(());
     }
 
-    // 更新本地索引文件
+    // 更新 global_index 的 remote 部分
+    global_index.remote = remote_index;
+
+    // 写入更新后的索引
     fs::write(
         &local_index_path,
-        serde_json::to_string_pretty(&remote_index)?,
+        serde_json::to_string_pretty(&global_index)?,
     )?;
 
     println!("成功更新本地索引，共更新 {} 个应用", updates.len());

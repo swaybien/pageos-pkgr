@@ -1,6 +1,6 @@
 [package]
 name = "pageos-pkgr"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["PJ568 <pj568@pj568.eu.org>"]
 edition = "2024"
 license = "MPL-2.0"
