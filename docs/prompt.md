@@ -1,1 +1,0 @@
-../../pageos-core/docs/prompt.md

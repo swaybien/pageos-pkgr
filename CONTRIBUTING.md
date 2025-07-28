@@ -21,7 +21,7 @@
 
 1. Fork 源码，下载到本地并运行项目；
 2. 添加或修改代码；
-3. 配置 rust 环境并运行 `cargo check` 对修改的代码进行静态检查；
+3. 配置 rust 环境并运行 `cargo check && cargo test` 对修改的代码进行静态检查和测试；
 4. 对相关改动进行全面的自我测试；
 5. 确认无误后提交修改到 Github；
 6. 提交 Pull Request。
