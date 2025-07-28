@@ -18,38 +18,31 @@ PageOS 是一个基于 Arch Linux 的图形化发行版，采用 Wayland 下的 
 
 ## 仓库结构
 
-### 本地仓库
 
-```
-~/.local/share/pageos/
-├── local/                  # 本地仓库
-│   └── applications/
-│       ├── pageos/
-│       │   └── settings-manager/
-│       │       ├── 1.0.0/
-│       │       │   ├── metadata.json
-│       │       │   └── ... # 应用文件
-│       │       ├── 1.1.0/
-│       │       └── versions.txt
-│       └── %USER_NAME%/
-│           └── app2/
-├── remote/                 # 远程仓库缓存
-├── config.toml             # 软件源配置
+```plaintext
+$HOME/.local/share/pageos/  # 仓库存储根目录
+├── packages/               # 已安装的包
+│   ├── pageos.settings-manager/
+│   │   ├── 1.0.0/
+│   │   │   ├── metadata.json
+│   │   │   └── ...         # 应用文件
+│   │   ├── 1.1.0/
+│   │   └── versions.txt
+│   └── %PACKAGE_ID%/
+│       └── %VERSION%/
+├── config.toml             # 软件源等设置（官方源、镜像源）
 └── index.json              # 全局索引文件
 ```
 
-### 在线仓库
+## 软件包结构
 
-```
-./
-├── applications/
-│   └── %APP_NAME%/
-│       ├── %VERSION%/
-│       │   ├── metadata.json
-│       │   └── ...         # 应用文件
-│       └── versions.txt
-├── config.toml             # 设置文件
-└── index.json              # 索引文件
+```plaintext
+.                           # 一般是该包的 package-id 命名的文件夹
+├── ...                     # 应用文件
+├── target/
+│   └── package-id.zip.papk # 打包好出的软件包文件
+├── .gitignore              # 忽略 target 文件夹
+└── metadata.json           # 全局索引文件
 ```
 
 ## 安装
