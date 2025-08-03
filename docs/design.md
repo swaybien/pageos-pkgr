@@ -326,7 +326,7 @@ id = "pageos-official"
 # 显示名称
 name = "PageOS 官方仓库"
 # 仓库根 URL，必须以 / 结尾
-url = "https://github.com/swaybien/pageos-apps/refs/heads/master/"
+url = "https://pageos-apps.pages.dev/"
 # 是否启用此源 (默认: true)
 enabled = true
 # 是否强制使用 HTTPS (默认: true)
