@@ -138,7 +138,16 @@ pub fn get_directory_files<P: AsRef<Path>>(path: P, recursive: bool) -> Result<V
             .filter_map(|e| e.ok())
         {
             if entry.file_type().is_file() {
-                files.push(entry.into_path());
+                let file_path = entry.into_path();
+                // 确保返回绝对路径
+                let abs_path = if file_path.is_absolute() {
+                    file_path
+                } else {
+                    // 将相对路径转换为绝对路径
+                    std::fs::canonicalize(&file_path)
+                        .with_context(|| format!("无法解析路径: {:?}", file_path))?
+                };
+                files.push(abs_path);
             }
         }
     } else {
@@ -147,10 +156,19 @@ pub fn get_directory_files<P: AsRef<Path>>(path: P, recursive: bool) -> Result<V
             fs::read_dir(path).with_context(|| format!("无法读取目录: {}", path.display()))?
         {
             let entry = entry.with_context(|| format!("无法读取目录条目: {}", path.display()))?;
-            let path = entry.path();
+            let entry_path = entry.path();
+            // 确保返回绝对路径
+            let abs_path = if entry_path.is_absolute() {
+                entry_path
+            } else {
+                let full_path = path.join(&entry_path);
+                // 将相对路径转换为绝对路径
+                std::fs::canonicalize(&full_path)
+                    .with_context(|| format!("无法解析路径: {:?}", full_path))?
+            };
 
-            if path.is_file() {
-                files.push(path);
+            if abs_path.is_file() {
+                files.push(abs_path);
             }
         }
     }
