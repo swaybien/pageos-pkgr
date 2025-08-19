@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use reqwest;
 use tokio::io::AsyncWriteExt;
 
 /// 从指定URL下载文件到本地路径
@@ -43,7 +42,7 @@ pub async fn download_file(url: &str, path: &str) -> Result<(), Box<dyn std::err
     // 确保目标目录存在
     let parent_dir = std::path::Path::new(path)
         .parent()
-        .ok_or_else(|| "无法获取父目录")?;
+        .ok_or("无法获取父目录")?;
     tokio::fs::create_dir_all(parent_dir).await?;
 
     // 创建本地文件
@@ -60,7 +59,7 @@ pub async fn download_file(url: &str, path: &str) -> Result<(), Box<dyn std::err
     // 显示进度
     if total_size > 0 {
         let progress = (downloaded as f64 / total_size as f64 * 100.0) as u8;
-        eprint!("\r下载进度: {}%", progress);
+        eprint!("\r下载进度: {progress}%");
     }
 
     // 确保所有数据都写入磁盘
@@ -167,18 +166,18 @@ pub async fn mirror_sync(
                 let location = if location.ends_with('/') {
                     location.to_string()
                 } else {
-                    format!("{}/", location)
+                    format!("{location}/")
                 };
 
                 // 获取包的文件列表
-                let files_url = format!("{}metadata.json", location);
+                let files_url = format!("{location}metadata.json");
                 let files_index = fetch_index(&files_url).await?;
 
                 // 同步包中的所有文件
                 if let Some(files) = files_index["all_files"].as_object() {
                     for (file_path, _hash) in files {
-                        let file_url = format!("{}{}", location, file_path);
-                        let local_path = format!("{}/{}", target_dir, file_path);
+                        let file_url = format!("{location}{file_path}");
+                        let local_path = format!("{target_dir}/{file_path}");
 
                         // 确保本地目录存在
                         if let Some(parent) = std::path::Path::new(&local_path).parent() {

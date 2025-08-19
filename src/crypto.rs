@@ -5,7 +5,7 @@
 use anyhow::Result;
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::Read;
 
 /// 计算文件的 SHA256 哈希值
 ///
@@ -34,7 +34,7 @@ pub fn file_hash(file_path: &str) -> Result<String> {
     }
 
     let result = hasher.finalize();
-    Ok(format!("{:x}", result))
+    Ok(format!("{result:x}"))
 }
 
 /// 验证文件的完整性

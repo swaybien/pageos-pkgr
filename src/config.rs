@@ -80,8 +80,8 @@ impl ConfigManager {
         }
 
         // 解析 TOML 配置
-        let mut config: RepositoryConfig =
-            load_toml(&Path::new(&self.config_path))
+        let config: RepositoryConfig =
+            load_toml(Path::new(&self.config_path))
                 .with_context(|| format!("无法读取或解析配置文件: {}", self.config_path))?;
 
         // 验证配置的有效性
@@ -106,7 +106,7 @@ impl ConfigManager {
         }
 
         // 写入文件
-        save_toml(config, &Path::new(&self.config_path))
+        save_toml(config, Path::new(&self.config_path))
             .with_context(|| format!("无法保存配置文件: {}", self.config_path))?;
 
         // 设置文件权限（如果可能）
@@ -214,7 +214,7 @@ impl ConfigManager {
         // 检查源ID是否唯一
         let mut source_ids = HashMap::new();
         for source in &config.source {
-            if let Some(_) = source_ids.insert(&source.id, ()) {
+            if source_ids.insert(&source.id, ()).is_some() {
                 return Err(anyhow::anyhow!("软件源ID '{}' 重复", source.id));
             }
         }

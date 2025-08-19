@@ -9,7 +9,7 @@ use crate::net;
 use crate::path::{expand_path, get_cache_dir};
 use crate::serde_utils::{load_json, save_json};
 use crate::transaction::Transaction;
-use crate::{crypto, index};
+use crate::crypto;
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -60,7 +60,7 @@ impl RepoManager {
         let config_path = repo_path.join("config.toml");
 
         // 创建仓库目录结构
-        fsxg::create_directory(&repo_path.join("packages"))
+        fsxg::create_directory(repo_path.join("packages"))
             .with_context(|| format!("无法创建 packages 目录: {}", repo_path.display()))?;
 
         // 初始化配置文件
@@ -186,7 +186,7 @@ impl RepoManager {
         }
 
         // 将 HashMap 中的值转换为 Vec，作为新的 source 部分
-        local_index.source = merged_source.into_iter().map(|(_, v)| v).collect();
+        local_index.source = merged_source.into_values().collect();
 
         // 保存更新后的索引
         save_json(&local_index, &index_path)?;
@@ -210,7 +210,7 @@ impl RepoManager {
         fsxg::create_directory(&package_dir)?;
 
         // 确保 metadata.all_files 至少包含一项
-        if metadata.all_files.len() < 1 {
+        if metadata.all_files.is_empty() {
             return Err(anyhow!("metadata.all_files 必须至少包含一项"));
         }
 
@@ -235,7 +235,7 @@ impl RepoManager {
         }
 
         // 复制所有文件
-        for (file_path, _hash) in &metadata.all_files {
+        for file_path in metadata.all_files.keys() {
             let src_path = package_path.join(file_path);
             let dest_path = package_dir.join(file_path);
 
@@ -383,6 +383,11 @@ impl RepoManager {
             }
         }
 
+        // 复制 metadata.json 文件
+        let src_metadata_path = metadata_path; // 缓存目录中的 metadata.json
+        let dest_metadata_path = package_dir.join("metadata.json");
+        fs::copy(src_metadata_path, dest_metadata_path)?;
+
         // 更新版本历史
         update_version_history(&metadata.id, &metadata.version, &self.repo_path)?;
 
@@ -462,7 +467,7 @@ impl RepoManager {
         if latest_version != current_version {
             // 安装新版本
             self.install_package(
-                &format!("{}:{}", source_id, package_id),
+                &format!("{source_id}:{package_id}"),
                 Some(&latest_version),
             )
             .await?;

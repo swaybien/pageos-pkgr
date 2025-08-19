@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 /// 包元数据
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Default)]
 pub struct PackageMetadata {
     /// 应用名称
     pub name: String,
@@ -37,6 +38,7 @@ pub struct PackageMetadata {
 /// 用于表示单个文件的路径和其对应的 SHA256 哈希值。
 /// 在 `PackageMetadata` 中，`all_files` 字段使用 `HashMap<String, String>` 来存储多个文件。
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Default)]
 pub struct FileManifest {
     /// 文件相对路径
     pub path: String,
@@ -78,23 +80,6 @@ impl VersionHistory {
     }
 }
 
-impl Default for PackageMetadata {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            id: String::new(),
-            version: String::new(),
-            description: String::new(),
-            icon: String::new(),
-            author: String::new(),
-            r#type: String::new(),
-            category: String::new(),
-            permissions: Vec::new(),
-            entry: String::new(),
-            all_files: HashMap::new(),
-        }
-    }
-}
 
 impl PackageMetadata {
     /// 创建一个新的包元数据实例
@@ -123,14 +108,6 @@ impl PackageMetadata {
     }
 }
 
-impl Default for FileManifest {
-    fn default() -> Self {
-        Self {
-            path: String::new(),
-            hash: String::new(),
-        }
-    }
-}
 
 impl FileManifest {
     /// 创建一个新的文件清单项

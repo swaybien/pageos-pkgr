@@ -145,7 +145,7 @@ pub fn get_directory_files<P: AsRef<Path>>(path: P, recursive: bool) -> Result<V
                 } else {
                     // 将相对路径转换为绝对路径
                     std::fs::canonicalize(&file_path)
-                        .with_context(|| format!("无法解析路径: {:?}", file_path))?
+                        .with_context(|| format!("无法解析路径: {file_path:?}"))?
                 };
                 files.push(abs_path);
             }
@@ -164,7 +164,7 @@ pub fn get_directory_files<P: AsRef<Path>>(path: P, recursive: bool) -> Result<V
                 let full_path = path.join(&entry_path);
                 // 将相对路径转换为绝对路径
                 std::fs::canonicalize(&full_path)
-                    .with_context(|| format!("无法解析路径: {:?}", full_path))?
+                    .with_context(|| format!("无法解析路径: {full_path:?}"))?
             };
 
             if abs_path.is_file() {

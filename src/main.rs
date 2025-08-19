@@ -239,9 +239,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } => {
                     let mut repo_manager = repo::RepoManager::open(repo.clone())?;
                     repo_manager
-                        .install_package(&source_package_version, None)
+                        .install_package(source_package_version, None)
                         .await?;
-                    println!("已成功安装软件包 {}", source_package_version);
+                    println!("已成功安装软件包 {source_package_version}");
                 }
                 RepoCommands::Remove {
                     package_version,
@@ -258,12 +258,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let mut repo_manager = repo::RepoManager::open(repo.clone())?;
                     repo_manager.remove_package(package_id, version)?;
-                    println!("已成功卸载软件包 {}", package_id);
+                    println!("已成功卸载软件包 {package_id}");
                 }
                 RepoCommands::Upgrade { package_id, repo } => {
                     let mut repo_manager = repo::RepoManager::open(repo.clone())?;
                     repo_manager.upgrade_package(package_id).await?;
-                    println!("已成功升级软件包 {}", package_id);
+                    println!("已成功升级软件包 {package_id}");
                 }
                 RepoCommands::Sync {
                     source_id,

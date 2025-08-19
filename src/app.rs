@@ -82,7 +82,7 @@ pub fn new<S: AsRef<str>, P: AsRef<Path>>(package_id: S, base_dir: P) -> Result<
     let base_dir = base_dir.as_ref();
     let package_path = base_dir.join(package_id);
 
-    init(&package_path).with_context(|| format!("无法初始化新应用包: {}", package_id))?;
+    init(&package_path).with_context(|| format!("无法初始化新应用包: {package_id}"))?;
 
     Ok(package_path)
 }

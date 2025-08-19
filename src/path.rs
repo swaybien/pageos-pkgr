@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use dirs;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -46,7 +45,7 @@ pub fn create_dir_all<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
 pub fn normalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let path = path.as_ref();
     let mut components = Vec::new();
-    let mut is_absolute = path.is_absolute();
+    let is_absolute = path.is_absolute();
 
     for component in path.components() {
         match component {
